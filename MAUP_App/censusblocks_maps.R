@@ -11,9 +11,6 @@ library(htmlwidgets) #interactive map labels
 censusblocks <- st_read("MAUP_App/censusblocks/censusblocks_fire_Clip.shp")
 
 
-#save for shiny 
-saveRDS(censusblocks, "MAUP_App/all_blocks.RDS")
-
 
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
@@ -47,3 +44,6 @@ blocks_interactive <- censusblocks %>%
             opacity = 0.7)
 
 saveWidget(blocks_interactive, "censusblocks_fire_map.html")
+
+# save map as RDS
+saveRDS(blocks_interactive, "all_blocks.RDS")
