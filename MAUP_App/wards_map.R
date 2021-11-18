@@ -5,24 +5,24 @@ library(tigris) #geojoin
 library(leaflet) #interactive maps
 library(htmlwidgets) #interactive map labels 
 
-#read in shapefile 
-censustracts <- st_read("MAUP_App/censustracts/censustracts_fire_Clip.shp")
 
+#read in shapefile 
+wards <- st_read("MAUP_App/wards/wards_fire_Clip.shp")
 
 #save for shiny 
-saveRDS(censustracts, "MAUP_App/all_tracts.RDS")
+saveRDS(wards, "MAUP_App/wards.RDS")
 
 
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  censustracts$NAME20, censustracts$COUNT) %>%
+  wards$WARD, wards$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 
-pal <- colorBin(palette = "OrRd", 6, domain = censustracts$COUNT)
+pal <- colorBin(palette = "OrRd", 6, domain = wards$COUNT)
 
-tracts_interactive <- censustracts %>%
+wards_interactive <- wards %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
   leaflet() %>%
   addProviderTiles(provider = "CartoDB.Positron") %>% 
@@ -37,11 +37,11 @@ tracts_interactive <- censustracts %>%
                                                   color = "white", 
                                                   opacity = 1, 
                                                   bringToFront = TRUE)) %>%
-              
+  
   addLegend("bottomright", 
             pal = pal, 
             values = ~ COUNT, 
-            title = "fire incidents", 
+            title = "wards fire incidents", 
             opacity = 0.7)
 
-saveWidget(tracts_interactive, "censustracts_fire_map.html")
+saveWidget(wards_interactive, "wards_fire_map.html")
