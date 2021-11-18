@@ -12,9 +12,6 @@ neighborhoods_fire %>% mutate_if(is.numeric, as.character) -> neighborhoods_fire
 #read in shapefile 
 neighborhoods <- st_read("MAUP_App/neighborhoods/neighborhoods_fire_Clip.shp")
 
-#save for shiny 
-saveRDS(neighborhoods, "MAUP_App/all_neighboroods.RDS")
-
 
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
@@ -23,7 +20,8 @@ labels <-sprintf(
   lapply(htmltools::HTML)
 
 #color palette 
-pal <- colorBin(palette = "OrRd", 6, domain = neighborhoods$COUNT)
+bin <- c(0, 48, 148, 264, 460, 739)
+pal <- colorBin(palette = "OrRd", bins = bin, domain = neighborhoods$COUNT)
 
 neighborhoods_interactive <- neighborhoods %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
@@ -48,3 +46,6 @@ neighborhoods_interactive <- neighborhoods %>%
             opacity = 0.7)
 
 saveWidget(neighborhoods_interactive, "neighborhoods_fire_map.html")
+
+# save map as RDS
+saveRDS(neighborhoods_interactive, "all_neighborhoods.RDS")

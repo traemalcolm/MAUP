@@ -11,7 +11,6 @@ library(htmlwidgets) #interactive map labels
 censusblocks <- st_read("MAUP_App/censusblocks/censusblocks_fire_Clip.shp")
 
 
-
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",

@@ -9,8 +9,6 @@ library(htmlwidgets) #interactive map labels
 #read in shapefile 
 wards <- st_read("MAUP_App/wards/wards_fire_Clip.shp")
 
-#save for shiny 
-saveRDS(wards, "MAUP_App/wards.RDS")
 
 
 ### MAKE INTERACTIVE MAP
@@ -20,7 +18,8 @@ labels <-sprintf(
   lapply(htmltools::HTML)
 
 #color palette 
-pal <- colorBin(palette = "OrRd", 6, domain = wards$COUNT)
+bin <- c(0, 124, 176, 231, 348, 534)
+pal <- colorBin(palette = "OrRd", bins = bin, domain = wards$COUNT)
 
 wards_interactive <- wards %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
@@ -45,3 +44,6 @@ wards_interactive <- wards %>%
             opacity = 0.7)
 
 saveWidget(wards_interactive, "wards_fire_map.html")
+
+# save map as RDS
+saveRDS(wards_interactive, "all_wards.RDS")

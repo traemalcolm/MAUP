@@ -9,8 +9,6 @@ library(htmlwidgets) #interactive map labels
 #read in shapefile 
 zipcodes <- st_read("MAUP_App/zipcodes/zipcodes_fire_Clip.shp")
 
-#save for shiny 
-saveRDS(wards, "MAUP_App/zipcodes.RDS")
 
 
 ### MAKE INTERACTIVE MAP
@@ -20,7 +18,9 @@ labels <-sprintf(
   lapply(htmltools::HTML)
 
 #color palette 
-pal <- colorBin(palette = "OrRd", 5, domain = zipcodes$COUNT)
+bin <- c(0, 21, 95, 156, 242, 402)
+pal <- colorBin(palette = "OrRd", bins = bin, domain = zipcodes$COUNT)
+
 
 zip_interactive <- zipcodes %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
@@ -45,3 +45,6 @@ zip_interactive <- zipcodes %>%
             opacity = 0.7)
 
 saveWidget(zip_interactive, "zipcodes_fire_map.html")
+
+# save map as RDS
+saveRDS(zip_interactive, "all_zip.RDS")

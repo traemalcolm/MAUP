@@ -5,12 +5,10 @@ library(tigris) #geojoin
 library(leaflet) #interactive maps
 library(htmlwidgets) #interactive map labels 
 
+
 #read in shapefile 
 censustracts <- st_read("MAUP_App/censustracts/censustracts_fire_Clip.shp")
 
-
-#save for shiny 
-saveRDS(censustracts, "MAUP_App/all_tracts.RDS")
 
 
 ### MAKE INTERACTIVE MAP
@@ -20,7 +18,8 @@ labels <-sprintf(
   lapply(htmltools::HTML)
 
 #color palette 
-pal <- colorBin(palette = "OrRd", 6, domain = censustracts$COUNT)
+bin <-  c(0, 12, 23, 39, 72, 149)
+pal <- colorBin(palette = "OrRd", bins = bin , domain = censustracts$COUNT)
 
 tracts_interactive <- censustracts %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
@@ -45,3 +44,6 @@ tracts_interactive <- censustracts %>%
             opacity = 0.7)
 
 saveWidget(tracts_interactive, "censustracts_fire_map.html")
+
+# save map as RDS
+saveRDS(tracts_interactive, "all_tracts.RDS")

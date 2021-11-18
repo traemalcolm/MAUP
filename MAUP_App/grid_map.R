@@ -12,8 +12,7 @@ grid_fire <- vroom("MAUP_App/grid_fire.csv")
 blank_grid <- st_read("MAUP_App/blank_grid/boston_fishnet_500ft_clipped2.shp")
 grid <- st_read("MAUP_App/grid_fire/grid_fire.shp")
 
-#save for shiny 
-saveRDS(grid, "MAUP_App/all_grid.RDS")
+
 
 
 ### MAKE INTERACTIVE MAP
@@ -22,8 +21,9 @@ labels <-sprintf(
   grid$OBJECTID, grid$COUNT) %>%
   lapply(htmltools::HTML)
 
-#color palette 
-pal <- colorBin(palette = "OrRd", 5, domain = grid$COUNT)
+#color palette
+bin <- c(0, 2, 4, 8, 14, 23)
+pal <- colorBin(palette = "OrRd", bins = bin, domain = grid$COUNT)
 
 grid_interactive <- grid %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
@@ -48,3 +48,6 @@ grid_interactive <- grid %>%
             opacity = 0.7)
 
 saveWidget(zip_interactive, "zipcodes_fire_map.html")
+
+# save map as RDS
+saveRDS(grid_interactive, "all_grid.RDS")
