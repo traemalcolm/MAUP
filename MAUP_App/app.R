@@ -7,10 +7,69 @@
 #    http://shiny.rstudio.com/
 #
 
+library(tidyverse) #data wrangling
+library(vroom) #reading and importing data
+library(sf) #spatial data
+# library(tigris) #geojoin
+library(leaflet) #interactive maps
+library(htmlwidgets) #interactive map labels 
+library(leaflet.extras)
 library(shiny)
 
-# read in interactive map RDS
-blocks <- readRDS("all_blocks.RDS")
+#read in shapefile 
+censusblocks <- st_read("censusblocks/censusblocks_fire_Clip.shp")
+
+### MAKE INTERACTIVE MAP
+labels <-sprintf(
+  "<strong>%s</strong><br/>%s fire incidents in September 2021",
+  censusblocks$NAMELSAD20, censusblocks$COUNT) %>%
+  lapply(htmltools::HTML)
+
+#color palette 
+pal <- colorBin(palette = "OrRd", 6, domain = censusblocks$COUNT)
+
+# create icon marker
+fireIcon <- makeIcon(
+  iconUrl = 'https://images.vexels.com/media/users/3/149795/isolated/lists/59a3259ace3f62753d684cb15f66d989-firefighter-hat-icon.png',
+  iconWidth = 10,
+  iconHeight = 10,
+  iconAnchorX = 100,
+  iconAnchorY = 100
+  
+)
+
+blocks_interactive <- censusblocks %>%
+  st_transform(crs = st_crs("+init=epsg:4326")) %>%
+  leaflet() %>%
+  addProviderTiles(provider = "CartoDB.Positron") %>%
+  addPolygons(label = labels, 
+              stroke = FALSE, 
+              smoothFactor = .5, 
+              opacity = 1, 
+              fillOpacity = 0.7, 
+              fillColor = ~ pal(COUNT), 
+              highlightOptions = highlightOptions(weight = 5,
+                                                  fillOpacity = 1, 
+                                                  color = "white", 
+                                                  opacity = 1, 
+                                                  bringToFront = TRUE)) %>%
+  addDrawToolbar(
+    targetGroup = "draw",
+    polylineOptions = FALSE,
+    polygonOptions = FALSE,
+    circleOptions = FALSE,
+    rectangleOptions = FALSE,
+    circleMarkerOptions = FALSE,
+    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    editOptions = editToolbarOptions(
+      selectedPathOptions = selectedPathOptions()
+    )
+  ) %>% 
+  addLegend("bottomright", 
+            pal = pal, 
+            values = ~ COUNT, 
+            title = "fire incidents", 
+            opacity = 0.7)
 
 # Define UI for application 
 ui <- fluidPage(
@@ -41,17 +100,14 @@ ui <- fluidPage(
 # Define server logic required to draw a map
 server <- function(input, output) {
   
-  output$blocks <- renderLeaflet(map2)
+  output$blocks <- renderLeaflet(blocks_interactive)
+  observeEvent(input$blocks_draw_new_feature,{
+    feature <- input$blocks_draw_new_feature
+    print(paste0("long", feature$geometry$coordinates[[1]]))
+    print(paste0("long", feature$geometry$coordinates[[2]]))
+  })
   
 
-    # output$distPlot <- renderPlot({
-    #     # generate bins based on input$bins from ui.R
-    #     x    <- faithful[, 2]
-    #     bins <- seq(min(x), max(x), length.out = input$bins + 1)
-    # 
-    #     # draw the histogram with the specified number of bins
-    #     hist(x, breaks = bins, col = 'darkgray', border = 'white')
-    # })
 }
 
 # Run the application 
