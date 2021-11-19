@@ -15,6 +15,7 @@ library(leaflet) #interactive maps
 library(htmlwidgets) #interactive map labels 
 library(leaflet.extras)
 library(shiny)
+library(googlesheets4)
 
 #read in shapefile 
 censusblocks <- st_read("censusblocks/censusblocks_fire_Clip.shp")
@@ -35,7 +36,6 @@ fireIcon <- makeIcon(
   iconHeight = 10,
   iconAnchorX = 100,
   iconAnchorY = 100
-  
 )
 
 blocks_interactive <- censusblocks %>%
@@ -100,14 +100,41 @@ ui <- fluidPage(
 # Define server logic required to draw a map
 server <- function(input, output) {
   
+  # render map
   output$blocks <- renderLeaflet(blocks_interactive)
+  
+  # load google sheet
+  # TODO: update to create a new google sheet each time in a directory
+  # TODO: load API creds automatically
+  gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
+  
+  # observe marker events 
+  observeEvent(input$blocks_draw_edited_features,{
+    feature <- input$blocks_draw_edited_features
+    
+    print(feature)
+    
+  }
+  )
+  
   observeEvent(input$blocks_draw_new_feature,{
     feature <- input$blocks_draw_new_feature
+    
+    # print(paste0('draw_all_features: ', input$blocks_draw_all_features))
+    # print(paste0('draw_edited_features: ', input$blocks_draw_edited_features))
+    # print(input)
+    # print(paste0('draw_deleted_features: ', input$blocks_draw_deleted_features))
+    
+    newRow <- data.frame(feature$geometry$coordinates[[1]], feature$geometry$coordinates[[2]])
+    names(newRow) <- c('long', 'lat')
+    
+    # append coordinates to sheet in the format (long, lat)
+    sheet_append(gsOut, data = newRow)
+    
     print(paste0("long", feature$geometry$coordinates[[1]]))
-    print(paste0("long", feature$geometry$coordinates[[2]]))
-  })
-  
-
+    print(paste0("lat", feature$geometry$coordinates[[2]]))
+  }
+  )
 }
 
 # Run the application 
