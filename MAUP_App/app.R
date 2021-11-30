@@ -27,7 +27,8 @@ labels <-sprintf(
   lapply(htmltools::HTML)
 
 #color palette 
-pal <- colorBin(palette = "OrRd", 6, domain = censusblocks$COUNT)
+bin = c(0, 6, 14, 31, 72, 145)
+pal <- colorBin(palette = "OrRd", bins = bin, domain = censusblocks$COUNT)
 
 # create icon marker
 fireIcon <- makeIcon(
@@ -74,7 +75,7 @@ blocks_interactive <- censusblocks %>%
 # Define UI for application 
 ui <- fluidPage(
   mainPanel(
-    leafletOutput("blocks")
+    leafletOutput("blocks", width = "100%", height = 800)
   )
 
     # # Application title
