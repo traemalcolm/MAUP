@@ -8,6 +8,7 @@
 #
 
 library(tidyverse) #data wrangling
+library(uuid)
 library(vroom) #reading and importing data
 library(sf) #spatial data
 # library(tigris) #geojoin
@@ -16,6 +17,24 @@ library(htmlwidgets) #interactive map labels
 library(leaflet.extras)
 library(shiny)
 library(googlesheets4)
+
+
+shpfiles <- c(
+  'censusblocks/censusblocks_fire_Clip.shp', # census blocks
+  'censusblocks/grid_fire', # grid
+  'censusblocks/neighborhoods_fire_Clip', # neighborhoods
+  'censusblocks/wards_fire_Clip', # wards
+  'censusblocks/zipcodes_fire_Clip' # zipcodes
+)
+
+bins <- c(
+  c(0, 6, 14, 31, 72, 145), # census blocks
+)
+
+
+
+selected <- sample(0:length(shpfiles), 1)
+
 
 #read in shapefile 
 censusblocks <- st_read("censusblocks/censusblocks_fire_Clip.shp")
@@ -29,15 +48,6 @@ labels <-sprintf(
 #color palette 
 bin = c(0, 6, 14, 31, 72, 145)
 pal <- colorBin(palette = "OrRd", bins = bin, domain = censusblocks$COUNT)
-
-# create icon marker
-fireIcon <- makeIcon(
-  iconUrl = 'https://images.vexels.com/media/users/3/149795/isolated/lists/59a3259ace3f62753d684cb15f66d989-firefighter-hat-icon.png',
-  iconWidth = 10,
-  iconHeight = 10,
-  iconAnchorX = 100,
-  iconAnchorY = 100
-)
 
 blocks_interactive <- censusblocks %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
@@ -61,7 +71,7 @@ blocks_interactive <- censusblocks %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    markerOptions = drawMarkerOptions(makeAwesomeIcon(icon = "fire", library="glyphicon", markerColor = "red")), #markerIcon = fireIcon),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -72,31 +82,20 @@ blocks_interactive <- censusblocks %>%
             title = "fire incidents", 
             opacity = 0.7)
 
+
 # Define UI for application 
 ui <- fluidPage(
   mainPanel(
     leafletOutput("blocks", width = "100%", height = 800)
   )
-
-    # # Application title
-    # titlePanel("Old Faithful Geyser Data"),
-    # 
-    # # Sidebar with a slider input for number of bins 
-    # sidebarLayout(
-    #     sidebarPanel(
-    #         sliderInput("bins",
-    #                     "Number of bins:",
-    #                     min = 1,
-    #                     max = 50,
-    #                     value = 30)
-    #     ),
-    # 
-    #     # Show a plot of the generated distribution
-    #     mainPanel(
-    #        plotOutput("distPlot")
-    #     )
-    # )
 )
+
+# load google sheet
+# TODO: load API creds automatically
+gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
+
+# generate UUID
+uid <- UUIDgenerate()
 
 # Define server logic required to draw a map
 server <- function(input, output) {
@@ -104,36 +103,76 @@ server <- function(input, output) {
   # render map
   output$blocks <- renderLeaflet(blocks_interactive)
   
-  # load google sheet
-  # TODO: update to create a new google sheet each time in a directory
-  # TODO: load API creds automatically
-  gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
-  
-  # observe marker events 
-  observeEvent(input$blocks_draw_edited_features,{
-    feature <- input$blocks_draw_edited_features
+  # observe new marker events
+  observeEvent(input$blocks_draw_new_feature,{
+    print('new marker')
+    features <- input$blocks_draw_new_feature
     
-    print(feature)
+    # push row to google sheet
+    newRow <- data.frame(
+      uid,
+      features$properties$`_leaflet_id`, 
+      features$geometry$coordinates[[1]], 
+      features$geometry$coordinates[[2]],
+      Sys.time(),
+      FALSE
+      )
+    names(newRow) <- c('uuid', 'leaflet_id', 'long', 'lat', 'timestamp', 'is_deleted')
+    sheet_append(gsOut, data = newRow) # push to sheet
     
+    # log
+    print('new marker')
+    print(newRow)
+    print('====================')
   }
   )
   
-  observeEvent(input$blocks_draw_new_feature,{
-    feature <- input$blocks_draw_new_feature
+  # observe edit marker events 
+  observeEvent(input$blocks_draw_edited_features,{
+    features <- input$blocks_draw_edited_features
+    print('edit marker event')
     
-    # print(paste0('draw_all_features: ', input$blocks_draw_all_features))
-    # print(paste0('draw_edited_features: ', input$blocks_draw_edited_features))
-    # print(input)
-    # print(paste0('draw_deleted_features: ', input$blocks_draw_deleted_features))
+    # push row to google sheet
+    # TODO: edit all markers, not just the first one
+    newRow <- data.frame(
+      uid,
+      features$features[[1]]$properties$`_leaflet_id`,
+      features$features[[1]]$geometry$coordinates[[1]], 
+      features$features[[1]]$geometry$coordinates[[1]],
+      Sys.time(), 
+      FALSE
+    )
+    names(newRow) <- c('uuid', 'leaflet_id', 'long', 'lat', 'timestamp', 'is_deleted')
+    sheet_append(gsOut, data = newRow) # push to sheet
     
-    newRow <- data.frame(feature$geometry$coordinates[[1]], feature$geometry$coordinates[[2]])
-    names(newRow) <- c('long', 'lat')
+    # log
+    print('edited marker')
+    print(newRow)
+    print('====================')
+  }
+  )
+  
+  # observe delete marker events 
+  observeEvent(input$blocks_draw_deleted_features,{
+    features <- input$blocks_draw_deleted_features
     
-    # append coordinates to sheet in the format (long, lat)
-    sheet_append(gsOut, data = newRow)
-    
-    print(paste0("long", feature$geometry$coordinates[[1]]))
-    print(paste0("lat", feature$geometry$coordinates[[2]]))
+    # TODO: delete all markers, not just the first one in the list
+    # push row to google sheet
+    newRow <- data.frame(
+      uid,
+      features$features[[1]]$properties$`_leaflet_id`,
+      features$features[[1]]$geometry$coordinates[[1]],
+      features$features[[1]]$geometry$coordinates[[2]],
+      Sys.time(),
+      TRUE
+    )
+    names(newRow) <- c('uuid', 'leaflet_id', 'long', 'lat', 'timestamp', 'is_deleted')
+    sheet_append(gsOut, data = newRow) # push to sheet
+
+    # log
+    print('deleted marker')
+    print(newRow)
+    print('====================')
   }
   )
 }
