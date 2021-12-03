@@ -31,12 +31,13 @@ pal <- colorBin(palette = "OrRd", bins = bin, domain = censusblocks$COUNT)
 
 # create icon marker
 fireIcon <- makeIcon(
-  iconUrl = 'firehat.png',
+  iconUrl = 'fire_hat.png',
   iconWidth = 10,
   iconHeight = 10,
   iconAnchorX = 100,
   iconAnchorY = 100
 )
+
 
 blocks_interactive <- censusblocks %>%
   st_transform(crs = st_crs("+init=epsg:4326")) %>%
@@ -60,7 +61,19 @@ blocks_interactive <- censusblocks %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
+      icon = "fire",
+      library = "glyphicon",
+      markerColor = "red",
+      iconColor = "white",
+      spin = FALSE,
+      extraClasses = NULL,
+      squareMarker = FALSE,
+      iconRotate = 0,
+      fontFamily = "monospace",
+      text = NULL
+    ), zIndexOffset = 2000,
+                                      repeatMode = FALSE),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -323,8 +336,8 @@ ui <- fluidPage(
     h2("Game Rules"), 
     h5("I was given these six maps to work with...what do you think? 
        They show fire-related calls across the City, divided up by census tracts, census blocks, 
-       zip code, neighborhood, wards, and a 5x5 km grid. Place firehouses around Boston to cover the 
-       most calls by dragging and dropping firehouses using the 'Draw marker' button."),
+       zip code, neighborhood, wards, and a 500 ft x 500 ft grid. Place firehouses around Boston to
+       cover the most calls by dragging and dropping firehouses using the 'Draw marker' button."),
     br(),
     h5("Pick one of the maps, and let's see how many fire-related calls we can cover!")
     ),
