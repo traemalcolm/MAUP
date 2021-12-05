@@ -14,7 +14,7 @@ wards <- st_read("MAUP_App/wards/wards_fire_Clip.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  wards$WARD, wards$COUNT) %>%
+  wards$NAME, wards$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 

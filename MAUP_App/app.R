@@ -16,13 +16,14 @@ library(htmlwidgets) #interactive map labels
 library(leaflet.extras)
 library(shiny)
 library(googlesheets4)
+library(uuid)
 
 censusblocks <- st_read("censusblocks/censusblocks_fire_Clip.shp")
 
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  censusblocks$NAMELSAD20, censusblocks$COUNT) %>%
+  censusblocks$NAME, censusblocks$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 
@@ -71,9 +72,8 @@ blocks_interactive <- censusblocks %>%
       squareMarker = FALSE,
       iconRotate = 0,
       fontFamily = "monospace",
-      text = NULL
-    ), zIndexOffset = 2000,
-                                      repeatMode = FALSE),
+      text = NULL), 
+      zIndexOffset = 2000, repeatMode = TRUE),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -89,7 +89,7 @@ censustracts <- st_read("censustracts/censustracts_fire_Clip.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  censustracts$NAME20, censustracts$COUNT) %>%
+  censustracts$NAME, censustracts$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 
@@ -118,7 +118,18 @@ tracts_interactive <- censustracts %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
+      icon = "fire",
+      library = "glyphicon",
+      markerColor = "red",
+      iconColor = "white",
+      spin = FALSE,
+      extraClasses = NULL,
+      squareMarker = FALSE,
+      iconRotate = 0,
+      fontFamily = "monospace",
+      text = NULL), 
+      zIndexOffset = 2000, repeatMode = TRUE),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -136,7 +147,7 @@ neighborhoods <- st_read("neighborhoods/neighborhoods_fire_Clip.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  neighborhoods$Name, neighborhoods$COUNT) %>%
+  neighborhoods$NAME, neighborhoods$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 
@@ -165,7 +176,18 @@ neighborhoods_interactive <- neighborhoods %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
+      icon = "fire",
+      library = "glyphicon",
+      markerColor = "red",
+      iconColor = "white",
+      spin = FALSE,
+      extraClasses = NULL,
+      squareMarker = FALSE,
+      iconRotate = 0,
+      fontFamily = "monospace",
+      text = NULL), 
+      zIndexOffset = 2000, repeatMode = TRUE),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -184,7 +206,7 @@ wards <- st_read("wards/wards_fire_Clip.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  wards$WARD, wards$COUNT) %>%
+  wards$NAME, wards$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 
@@ -213,7 +235,18 @@ wards_interactive <- wards %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
+      icon = "fire",
+      library = "glyphicon",
+      markerColor = "red",
+      iconColor = "white",
+      spin = FALSE,
+      extraClasses = NULL,
+      squareMarker = FALSE,
+      iconRotate = 0,
+      fontFamily = "monospace",
+      text = NULL), 
+      zIndexOffset = 2000, repeatMode = TRUE),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -230,7 +263,7 @@ zipcodes <- st_read("zipcodes/zipcodes_fire_Clip.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  zipcodes$ZIP5, zipcodes$COUNT) %>%
+  zipcodes$NAME, zipcodes$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 
@@ -260,7 +293,18 @@ zip_interactive <- zipcodes %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
+      icon = "fire",
+      library = "glyphicon",
+      markerColor = "red",
+      iconColor = "white",
+      spin = FALSE,
+      extraClasses = NULL,
+      squareMarker = FALSE,
+      iconRotate = 0,
+      fontFamily = "monospace",
+      text = NULL), 
+      zIndexOffset = 2000, repeatMode = TRUE),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -280,7 +324,7 @@ grid <- st_read("grid_fire/grid_fire.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  grid$OBJECTID, grid$COUNT) %>%
+  grid$NAME, grid$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette
@@ -309,7 +353,18 @@ grid_interactive <- grid %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = fireIcon),
+    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
+      icon = "fire",
+      library = "glyphicon",
+      markerColor = "red",
+      iconColor = "white",
+      spin = FALSE,
+      extraClasses = NULL,
+      squareMarker = FALSE,
+      iconRotate = 0,
+      fontFamily = "monospace",
+      text = NULL), 
+      zIndexOffset = 2000, repeatMode = TRUE),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -320,6 +375,12 @@ grid_interactive <- grid %>%
             values = ~ COUNT, 
             title = "fire incidents", 
             opacity = 0.7)
+
+#tabTrack <- function(input, output, session) {
+ # observeEvent(input$button, {
+    #print(input$button)
+  #})
+#}
 
 # Define UI for application 
 ui <- fluidPage(
@@ -362,11 +423,12 @@ ui <- fluidPage(
                 tabPanel('Zip Codes', 
                          leafletOutput('zipcodes', width = "100%", height = 800)   
                 ),
-                tabPanel('500 ftx500 ft grid', 
+                tabPanel('500 ft x 500 ft grid', 
                          leafletOutput('grid', width = "100%", height = 800)   
                 )
                 
-    )
+    ),
+  actionButton("results", "Click to see how you did!")
   )
   
 )
@@ -375,8 +437,7 @@ ui <- fluidPage(
 # Define server logic required to draw a map
 server <- function(input, output) {
   
-  # render map
-  
+  # render maps for tabs 
   output$blocks <- renderLeaflet({blocks_interactive})
   output$tracts <- renderLeaflet({tracts_interactive})
   output$neighborhoods <- renderLeaflet({neighborhoods_interactive})
@@ -384,6 +445,10 @@ server <- function(input, output) {
   output$zipcodes <- renderLeaflet({zip_interactive})
   output$grid <- renderLeaflet({grid_interactive})
   
+  #render maps for results 
+  output$blocks_results <- renderLeaflet({blocks_interactive})
+  
+  #render tabs 
   observe({
     input$my_tabsetPanel
     
@@ -396,16 +461,26 @@ server <- function(input, output) {
       
     
   })
+  map <- eventReactive(input$results, {
+  })
   
+  output$map <- renderLeaflet({blocks_interactive})
+
+  #observeEvent( input$results, {
+    #output$blocks_resulsts <- renderLeaflet({blocks_interactive})
+  
+    
+    
+  #})
+  
+}
   
   # load google sheet
   # TODO: update to create a new google sheet each time in a directory
   # TODO: load API creds automatically
   gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
   
-  randomVals <- eventReactive(input$nex_map, {
-    
-  })
+  
 
   # observe marker events 
   observeEvent(input$blocks_draw_edited_features,{
@@ -434,7 +509,7 @@ server <- function(input, output) {
     print(paste0("lat", feature$geometry$coordinates[[2]]))
   }
   )
-}
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)
