@@ -10,13 +10,13 @@
 library(tidyverse) #data wrangling
 library(vroom) #reading and importing data
 library(sf) #spatial data
-# library(tigris) #geojoin
 library(leaflet) #interactive maps
 library(htmlwidgets) #interactive map labels 
 library(leaflet.extras)
 library(shiny)
 library(googlesheets4)
-library(uuid)
+library(uuid) #generate uuid  
+
 
 censusblocks <- st_read("censusblocks/censusblocks_fire_Clip.shp")
 
@@ -376,11 +376,10 @@ grid_interactive <- grid %>%
             title = "fire incidents", 
             opacity = 0.7)
 
-#tabTrack <- function(input, output, session) {
- # observeEvent(input$button, {
-    #print(input$button)
-  #})
-#}
+fire_icon <- icons(
+  iconUrl = "fire_station.png",
+  iconWidth = 30, iconHeight = 30)
+
 
 # Define UI for application 
 ui <- fluidPage(
@@ -400,7 +399,8 @@ ui <- fluidPage(
        zip code, neighborhood, wards, and a 500 ft x 500 ft grid. Place firehouses around Boston to
        cover the most calls by dragging and dropping firehouses using the 'Draw marker' button."),
     br(),
-    h5("Pick one of the maps, and let's see how many fire-related calls we can cover!")
+    h5("Pick one of the maps, and let's see how many fire-related calls we can cover!"),
+    actionButton("results", "Click to see how you did!"), 
     ),
   mainPanel(
     
@@ -409,29 +409,40 @@ ui <- fluidPage(
     # Random map button 
     tabsetPanel(id='my_tabsetPanel',
                 tabPanel('Census Blocks',
-                         leafletOutput('blocks', width = "100%", height = 800)   
-                ), 
+                         leafletOutput('blocks', width = "100%", height = 800)
+                ),
                 tabPanel('Census Tracts',
-                         leafletOutput('tracts', width = "100%", height = 800)   
-                ), 
+                         leafletOutput('tracts', width = "100%", height = 800)
+                ),
                 tabPanel('Neighborhoods',
-                         leafletOutput('neighborhoods', width = "100%", height = 800)   
-                ), 
-                tabPanel('Wards', 
-                         leafletOutput('wards', width = "100%", height = 800)   
+                         leafletOutput('neighborhoods', width = "100%", height = 800)
                 ),
-                tabPanel('Zip Codes', 
-                         leafletOutput('zipcodes', width = "100%", height = 800)   
+                tabPanel('Wards',
+                         leafletOutput('wards', width = "100%", height = 800)
                 ),
-                tabPanel('500 ft x 500 ft grid', 
-                         leafletOutput('grid', width = "100%", height = 800)   
+                tabPanel('Zip Codes',
+                         leafletOutput('zipcodes', width = "100%", height = 800)
+                ),
+                tabPanel('500 ft x 500 ft grid',
+                         leafletOutput('grid', width = "100%", height = 800)
                 )
                 
     ),
-  actionButton("results", "Click to see how you did!")
+    br(),
+    fixedRow(
+      column(width = 6,
+             leafletOutput('blocks_results')
+      ),
+      column(width = 6,
+             leafletOutput('grid_results')
+      )
+    )
+    
+    )
+  
   )
   
-)
+
 
 
 # Define server logic required to draw a map
@@ -445,8 +456,6 @@ server <- function(input, output) {
   output$zipcodes <- renderLeaflet({zip_interactive})
   output$grid <- renderLeaflet({grid_interactive})
   
-  #render maps for results 
-  output$blocks_results <- renderLeaflet({blocks_interactive})
   
   #render tabs 
   observe({
@@ -458,21 +467,40 @@ server <- function(input, output) {
     tab4 <- leafletProxy('wards')  
     tab5 <- leafletProxy('zipcodes')
     tab6 <- leafletProxy('grid')
+  })
       
-    
-  })
-  map <- eventReactive(input$results, {
-  })
   
-  output$map <- renderLeaflet({blocks_interactive})
-
-  #observeEvent( input$results, {
-    #output$blocks_resulsts <- renderLeaflet({blocks_interactive})
+  ### FIRE HOUSE RESULTS MAP
+  #read data from google sheet 
+  firehouse_results <- read_sheet("https://docs.google.com/spreadsheets/d/1oBRqd221N29aGoxjarPzhUXa72RlRIdh7a3huNxVoYU/edit#gid=0")
   
-    
-    
-  #})
+  # generates the uuid 
+    # TODO: probably not be the right place to generate the id... 
+  id <- UUIDgenerate()
   
+  # filter results into seperate data tables 
+    # TODO: remember to change uuid to generated id
+    # TODO: timestamp range needs to be corrected 
+  blocks_data <- firehouse_results %>% filter(leaflet_id == 1231) %>%
+                                       filter(uuid == 'ecf86ffe-390c-469c-985c-e8c70c190d8c') %>% 
+                                       filter(timestamp == (min(timestamp): max(timestamp)))
+                                      # max(timestamp) finds last timestamp but what's the beginning of the range?
+  
+  
+  
+  #render maps for results 
+    # TODO: can't figure out how to use the proper markers
+    # TODO: maps need to link to action button so they appear with the click 
+  output$blocks_results <- renderLeaflet({blocks_interactive %>%
+          addMarkers(data = blocks_data,
+                     icon = fire_icon
+          )
+      })
+  output$grid_results <- renderLeaflet({grid_interactive %>%
+          addMarkers(data = blocks_data,
+                     icon = fire_icon
+          )
+      })
 }
   
   # load google sheet
@@ -509,6 +537,10 @@ server <- function(input, output) {
     print(paste0("lat", feature$geometry$coordinates[[2]]))
   }
   )
+  
+  
+  
+  
 
 
 # Run the application 
