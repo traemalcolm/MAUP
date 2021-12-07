@@ -18,7 +18,7 @@ grid <- st_read("MAUP_App/grid_fire/grid_fire.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  grid$OBJECTID, grid$COUNT) %>%
+  grid$NAME, grid$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette
@@ -51,3 +51,4 @@ saveWidget(zip_interactive, "zipcodes_fire_map.html")
 
 # save map as RDS
 saveRDS(grid_interactive, "all_grid.RDS")
+

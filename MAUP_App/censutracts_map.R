@@ -14,7 +14,7 @@ censustracts <- st_read("MAUP_App/censustracts/censustracts_fire_Clip.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  censustracts$NAME20, censustracts$COUNT) %>%
+  censustracts$NAME, censustracts$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 

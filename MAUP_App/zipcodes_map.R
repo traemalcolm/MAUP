@@ -14,7 +14,7 @@ zipcodes <- st_read("MAUP_App/zipcodes/zipcodes_fire_Clip.shp")
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
   "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  zipcodes$ZIP5, zipcodes$COUNT) %>%
+  zipcodes$NAME, zipcodes$COUNT) %>%
   lapply(htmltools::HTML)
 
 #color palette 
