@@ -8,6 +8,7 @@
 #
 
 library(tidyverse) #data wrangling
+library(uuid)
 library(vroom) #reading and importing data
 library(sf) #spatial data
 library(leaflet) #interactive maps
@@ -18,7 +19,34 @@ library(googlesheets4)
 library(uuid) #generate uuid  
 
 
-censusblocks <- st_read("censusblocks/censusblocks_fire_Clip.shp")
+  'censusblocks/censusblocks_fire_Clip.shp', # census blocks
+  # 'censustracts/censustracts_fire_Clip.shp', # census tracts
+  'grid_fire/grid_fire.shp', # grid
+  'neighborhoods/neighborhoods_fire_Clip.shp', # neighborhoods
+  'wards/wards_fire_Clip.shp', # wards
+  'zipcodes/zipcodes_fire_Clip.shp' # zipcodes
+)
+
+bins <- list(
+  c(0, 6, 14, 31, 72, 145), # census blocks
+  # c(0, 12, 23, 39, 72, 149), # census tracts
+  c(0, 2, 4, 8, 14, 23), # grid
+  c(0, 48, 148, 264, 460, 739), # neighborhoods
+  c(0, 124, 176, 231, 348, 534), # wards
+  c(0, 21, 95, 156, 242, 402) # zipcodes
+)
+
+# select random map
+selected <- sample(1:length(shpfiles), 1)
+selected_shp <- shpfiles[selected]
+selected_bin <- bins[selected][[1]]
+print(selected)
+print(selected_shp)
+print(selected_bin)
+
+#read in shapefile 
+censusblocks <- st_read(selected_shp) # st_read("censusblocks/censusblocks_fire_Clip.shp")
+
 
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
@@ -27,17 +55,8 @@ labels <-sprintf(
   lapply(htmltools::HTML)
 
 #color palette 
-bin = c(0, 6, 14, 31, 72, 145)
+bin = selected_bin # c(0, 6, 14, 31, 72, 145)
 pal <- colorBin(palette = "OrRd", bins = bin, domain = censusblocks$COUNT)
-
-# create icon marker
-fireIcon <- makeIcon(
-  iconUrl = 'fire_hat.png',
-  iconWidth = 10,
-  iconHeight = 10,
-  iconAnchorX = 100,
-  iconAnchorY = 100
-)
 
 
 blocks_interactive <- censusblocks %>%
@@ -62,74 +81,8 @@ blocks_interactive <- censusblocks %>%
     circleOptions = FALSE,
     rectangleOptions = FALSE,
     circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
-      icon = "fire",
-      library = "glyphicon",
-      markerColor = "red",
-      iconColor = "white",
-      spin = FALSE,
-      extraClasses = NULL,
-      squareMarker = FALSE,
-      iconRotate = 0,
-      fontFamily = "monospace",
-      text = NULL), 
-      zIndexOffset = 2000, repeatMode = TRUE),
-    editOptions = editToolbarOptions(
-      selectedPathOptions = selectedPathOptions()
-    )
-  ) %>% 
-  addLegend("bottomright", 
-            pal = pal, 
-            values = ~ COUNT, 
-            title = "fire incidents", 
-            opacity = 0.7)
 
-censustracts <- st_read("censustracts/censustracts_fire_Clip.shp")
-
-### MAKE INTERACTIVE MAP
-labels <-sprintf(
-  "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  censustracts$NAME, censustracts$COUNT) %>%
-  lapply(htmltools::HTML)
-
-#color palette 
-bin <-  c(0, 12, 23, 39, 72, 149)
-pal <- colorBin(palette = "OrRd", bins = bin , domain = censustracts$COUNT)
-
-tracts_interactive <- censustracts %>%
-  st_transform(crs = st_crs("+init=epsg:4326")) %>%
-  leaflet() %>%
-  addProviderTiles(provider = "CartoDB.Positron") %>% 
-  addPolygons(label = labels, 
-              stroke = FALSE, 
-              smoothFactor = .5, 
-              opacity = 1, 
-              fillOpacity = 0.7, 
-              fillColor = ~ pal(COUNT), 
-              highlightOptions = highlightOptions(weight = 5,
-                                                  fillOpacity = 1, 
-                                                  color = "white", 
-                                                  opacity = 1, 
-                                                  bringToFront = TRUE)) %>%
-  addDrawToolbar(
-    targetGroup = "draw",
-    polylineOptions = FALSE,
-    polygonOptions = FALSE,
-    circleOptions = FALSE,
-    rectangleOptions = FALSE,
-    circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
-      icon = "fire",
-      library = "glyphicon",
-      markerColor = "red",
-      iconColor = "white",
-      spin = FALSE,
-      extraClasses = NULL,
-      squareMarker = FALSE,
-      iconRotate = 0,
-      fontFamily = "monospace",
-      text = NULL), 
-      zIndexOffset = 2000, repeatMode = TRUE),
+    markerOptions = drawMarkerOptions(makeAwesomeIcon(icon = "fire", library="glyphicon", markerColor = "red")), #markerIcon = fireIcon),
     editOptions = editToolbarOptions(
       selectedPathOptions = selectedPathOptions()
     )
@@ -140,246 +93,6 @@ tracts_interactive <- censustracts %>%
             values = ~ COUNT, 
             title = "fire incidents", 
             opacity = 0.7)
-
-neighborhoods <- st_read("neighborhoods/neighborhoods_fire_Clip.shp")
-
-
-### MAKE INTERACTIVE MAP
-labels <-sprintf(
-  "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  neighborhoods$NAME, neighborhoods$COUNT) %>%
-  lapply(htmltools::HTML)
-
-#color palette 
-bin <- c(0, 48, 148, 264, 460, 739)
-pal <- colorBin(palette = "OrRd", bins = bin, domain = neighborhoods$COUNT)
-
-neighborhoods_interactive <- neighborhoods %>%
-  st_transform(crs = st_crs("+init=epsg:4326")) %>%
-  leaflet() %>%
-  addProviderTiles(provider = "CartoDB.Positron") %>% 
-  addPolygons(label = labels, 
-              stroke = FALSE, 
-              smoothFactor = .5, 
-              opacity = 1, 
-              fillOpacity = 0.7, 
-              fillColor = ~ pal(COUNT), 
-              highlightOptions = highlightOptions(weight = 5,
-                                                  fillOpacity = 1, 
-                                                  color = "white", 
-                                                  opacity = 1, 
-                                                  bringToFront = TRUE)) %>%
-  addDrawToolbar(
-    targetGroup = "draw",
-    polylineOptions = FALSE,
-    polygonOptions = FALSE,
-    circleOptions = FALSE,
-    rectangleOptions = FALSE,
-    circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
-      icon = "fire",
-      library = "glyphicon",
-      markerColor = "red",
-      iconColor = "white",
-      spin = FALSE,
-      extraClasses = NULL,
-      squareMarker = FALSE,
-      iconRotate = 0,
-      fontFamily = "monospace",
-      text = NULL), 
-      zIndexOffset = 2000, repeatMode = TRUE),
-    editOptions = editToolbarOptions(
-      selectedPathOptions = selectedPathOptions()
-    )
-  ) %>% 
-  
-  addLegend("bottomright", 
-            pal = pal, 
-            values = ~ COUNT, 
-            title = "fire incidents", 
-            opacity = 0.7)
-
-
-#read in shapefile 
-wards <- st_read("wards/wards_fire_Clip.shp")
-
-### MAKE INTERACTIVE MAP
-labels <-sprintf(
-  "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  wards$NAME, wards$COUNT) %>%
-  lapply(htmltools::HTML)
-
-#color palette 
-bin <- c(0, 124, 176, 231, 348, 534)
-pal <- colorBin(palette = "OrRd", bins = bin, domain = wards$COUNT)
-
-wards_interactive <- wards %>%
-  st_transform(crs = st_crs("+init=epsg:4326")) %>%
-  leaflet() %>%
-  addProviderTiles(provider = "CartoDB.Positron") %>% 
-  addPolygons(label = labels, 
-              stroke = FALSE, 
-              smoothFactor = .5, 
-              opacity = 1, 
-              fillOpacity = 0.7, 
-              fillColor = ~ pal(COUNT), 
-              highlightOptions = highlightOptions(weight = 5,
-                                                  fillOpacity = 1, 
-                                                  color = "white", 
-                                                  opacity = 1, 
-                                                  bringToFront = TRUE)) %>%
-  addDrawToolbar(
-    targetGroup = "draw",
-    polylineOptions = FALSE,
-    polygonOptions = FALSE,
-    circleOptions = FALSE,
-    rectangleOptions = FALSE,
-    circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
-      icon = "fire",
-      library = "glyphicon",
-      markerColor = "red",
-      iconColor = "white",
-      spin = FALSE,
-      extraClasses = NULL,
-      squareMarker = FALSE,
-      iconRotate = 0,
-      fontFamily = "monospace",
-      text = NULL), 
-      zIndexOffset = 2000, repeatMode = TRUE),
-    editOptions = editToolbarOptions(
-      selectedPathOptions = selectedPathOptions()
-    )
-  ) %>% 
-  
-  addLegend("bottomright", 
-            pal = pal, 
-            values = ~ COUNT, 
-            title = "wards fire incidents", 
-            opacity = 0.7)
-
-zipcodes <- st_read("zipcodes/zipcodes_fire_Clip.shp")
-
-### MAKE INTERACTIVE MAP
-labels <-sprintf(
-  "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  zipcodes$NAME, zipcodes$COUNT) %>%
-  lapply(htmltools::HTML)
-
-#color palette 
-bin <- c(0, 21, 95, 156, 242, 402)
-pal <- colorBin(palette = "OrRd", bins = bin, domain = zipcodes$COUNT)
-
-
-zip_interactive <- zipcodes %>%
-  st_transform(crs = st_crs("+init=epsg:4326")) %>%
-  leaflet() %>%
-  addProviderTiles(provider = "CartoDB.Positron") %>% 
-  addPolygons(label = labels, 
-              stroke = FALSE, 
-              smoothFactor = .5, 
-              opacity = 1, 
-              fillOpacity = 0.7, 
-              fillColor = ~ pal(COUNT), 
-              highlightOptions = highlightOptions(weight = 5,
-                                                  fillOpacity = 1, 
-                                                  color = "white", 
-                                                  opacity = 1, 
-                                                  bringToFront = TRUE)) %>%
-  addDrawToolbar(
-    targetGroup = "draw",
-    polylineOptions = FALSE,
-    polygonOptions = FALSE,
-    circleOptions = FALSE,
-    rectangleOptions = FALSE,
-    circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
-      icon = "fire",
-      library = "glyphicon",
-      markerColor = "red",
-      iconColor = "white",
-      spin = FALSE,
-      extraClasses = NULL,
-      squareMarker = FALSE,
-      iconRotate = 0,
-      fontFamily = "monospace",
-      text = NULL), 
-      zIndexOffset = 2000, repeatMode = TRUE),
-    editOptions = editToolbarOptions(
-      selectedPathOptions = selectedPathOptions()
-    )
-  ) %>% 
-  
-  addLegend("bottomright", 
-            pal = pal, 
-            values = ~ COUNT, 
-            title = "fire incidents", 
-            opacity = 0.7)
-
-
-#read in shapefile 
-blank_grid <- st_read("blank_grid/boston_fishnet_500ft_clipped2.shp")
-grid <- st_read("grid_fire/grid_fire.shp")
-
-### MAKE INTERACTIVE MAP
-labels <-sprintf(
-  "<strong>%s</strong><br/>%s fire incidents in September 2021",
-  grid$NAME, grid$COUNT) %>%
-  lapply(htmltools::HTML)
-
-#color palette
-bin <- c(0, 2, 4, 8, 14, 23)
-pal <- colorBin(palette = "OrRd", bins = bin, domain = grid$COUNT)
-
-grid_interactive <- grid %>%
-  st_transform(crs = st_crs("+init=epsg:4326")) %>%
-  leaflet() %>%
-  addProviderTiles(provider = "CartoDB.Positron") %>% 
-  addPolygons(label = labels, 
-              stroke = FALSE, 
-              smoothFactor = .5, 
-              opacity = 1, 
-              fillOpacity = 0.7, 
-              fillColor = ~ pal(COUNT), 
-              highlightOptions = highlightOptions(weight = 5,
-                                                  fillOpacity = 1, 
-                                                  color = "white", 
-                                                  opacity = 1, 
-                                                  bringToFront = TRUE)) %>%
-  addDrawToolbar(
-    targetGroup = "draw",
-    polylineOptions = FALSE,
-    polygonOptions = FALSE,
-    circleOptions = FALSE,
-    rectangleOptions = FALSE,
-    circleMarkerOptions = FALSE,
-    markerOptions = drawMarkerOptions(markerIcon = makeAwesomeIcon(
-      icon = "fire",
-      library = "glyphicon",
-      markerColor = "red",
-      iconColor = "white",
-      spin = FALSE,
-      extraClasses = NULL,
-      squareMarker = FALSE,
-      iconRotate = 0,
-      fontFamily = "monospace",
-      text = NULL), 
-      zIndexOffset = 2000, repeatMode = TRUE),
-    editOptions = editToolbarOptions(
-      selectedPathOptions = selectedPathOptions()
-    )
-  ) %>% 
-  
-  addLegend("bottomright", 
-            pal = pal, 
-            values = ~ COUNT, 
-            title = "fire incidents", 
-            opacity = 0.7)
-
-fire_icon <- icons(
-  iconUrl = "fire_station.png",
-  iconWidth = 30, iconHeight = 30)
-
 
 # Define UI for application 
 ui <- fluidPage(
@@ -441,9 +154,14 @@ ui <- fluidPage(
     )
   
   )
-  
+)
 
+# load google sheet
+# TODO: load API creds automatically
+gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
 
+# generate UUID
+uid <- UUIDgenerate()
 
 # Define server logic required to draw a map
 server <- function(input, output) {
@@ -502,39 +220,83 @@ server <- function(input, output) {
           )
       })
 }
-  
+ 
+  # observe new marker events
+  observeEvent(input$blocks_draw_new_feature,{
+    print('new marker')
+    features <- input$blocks_draw_new_feature
+
   # load google sheet
   # TODO: update to create a new google sheet each time in a directory
   # TODO: load API creds automatically
-  gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
-  
-  
+  # gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
 
-  # observe marker events 
-  observeEvent(input$blocks_draw_edited_features,{
-    feature <- input$blocks_draw_edited_features
     
-    print(feature)
+    # push row to google sheet
+    newRow <- data.frame(
+      uid,
+      features$properties$`_leaflet_id`, 
+      features$geometry$coordinates[[1]], 
+      features$geometry$coordinates[[2]],
+      Sys.time(),
+      FALSE
+      )
+    names(newRow) <- c('uuid', 'leaflet_id', 'long', 'lat', 'timestamp', 'is_deleted')
+    sheet_append(gsOut, data = newRow) # push to sheet
     
+    # log
+    print('new marker')
+    print(newRow)
+    print('====================')
   }
   )
   
-  observeEvent(input$blocks_draw_new_feature,{
-    feature <- input$blocks_draw_new_feature
+  # observe edit marker events 
+  observeEvent(input$blocks_draw_edited_features,{
+    features <- input$blocks_draw_edited_features
+    print('edit marker event')
     
-    # print(paste0('draw_all_features: ', input$blocks_draw_all_features))
-    # print(paste0('draw_edited_features: ', input$blocks_draw_edited_features))
-    # print(input)
-    # print(paste0('draw_deleted_features: ', input$blocks_draw_deleted_features))
+    # push row to google sheet
+    # TODO: edit all markers, not just the first one
+    newRow <- data.frame(
+      uid,
+      features$features[[1]]$properties$`_leaflet_id`,
+      features$features[[1]]$geometry$coordinates[[1]], 
+      features$features[[1]]$geometry$coordinates[[1]],
+      Sys.time(), 
+      FALSE
+    )
+    names(newRow) <- c('uuid', 'leaflet_id', 'long', 'lat', 'timestamp', 'is_deleted')
+    sheet_append(gsOut, data = newRow) # push to sheet
     
-    newRow <- data.frame(feature$geometry$coordinates[[1]], feature$geometry$coordinates[[2]])
-    names(newRow) <- c('long', 'lat')
+    # log
+    print('edited marker')
+    print(newRow)
+    print('====================')
+  }
+  )
+  
+  # observe delete marker events 
+  observeEvent(input$blocks_draw_deleted_features,{
+    features <- input$blocks_draw_deleted_features
     
-    # append coordinates to sheet in the format (long, lat)
-    sheet_append(gsOut, data = newRow)
-    
-    print(paste0("long", feature$geometry$coordinates[[1]]))
-    print(paste0("lat", feature$geometry$coordinates[[2]]))
+    # TODO: delete all markers, not just the first one in the list
+    # push row to google sheet
+    newRow <- data.frame(
+      uid,
+      features$features[[1]]$properties$`_leaflet_id`,
+      features$features[[1]]$geometry$coordinates[[1]],
+      features$features[[1]]$geometry$coordinates[[2]],
+      Sys.time(),
+      TRUE
+    )
+    names(newRow) <- c('uuid', 'leaflet_id', 'long', 'lat', 'timestamp', 'is_deleted')
+    sheet_append(gsOut, data = newRow) # push to sheet
+
+    # log
+    print('deleted marker')
+    print(newRow)
+    print('====================')
   }
   )
   
