@@ -19,25 +19,34 @@ library(shiny)
 library(googlesheets4)
 
 
-shpfiles <- c(
+shpfiles <- list(
   'censusblocks/censusblocks_fire_Clip.shp', # census blocks
-  'censusblocks/grid_fire', # grid
-  'censusblocks/neighborhoods_fire_Clip', # neighborhoods
-  'censusblocks/wards_fire_Clip', # wards
-  'censusblocks/zipcodes_fire_Clip' # zipcodes
+  # 'censustracts/censustracts_fire_Clip.shp', # census tracts
+  'grid_fire/grid_fire.shp', # grid
+  'neighborhoods/neighborhoods_fire_Clip.shp', # neighborhoods
+  'wards/wards_fire_Clip.shp', # wards
+  'zipcodes/zipcodes_fire_Clip.shp' # zipcodes
 )
 
-bins <- c(
+bins <- list(
   c(0, 6, 14, 31, 72, 145), # census blocks
+  # c(0, 12, 23, 39, 72, 149), # census tracts
+  c(0, 2, 4, 8, 14, 23), # grid
+  c(0, 48, 148, 264, 460, 739), # neighborhoods
+  c(0, 124, 176, 231, 348, 534), # wards
+  c(0, 21, 95, 156, 242, 402) # zipcodes
 )
 
-
-
-selected <- sample(0:length(shpfiles), 1)
-
+# select random map
+selected <- sample(1:length(shpfiles), 1)
+selected_shp <- shpfiles[selected]
+selected_bin <- bins[selected][[1]]
+print(selected)
+print(selected_shp)
+print(selected_bin)
 
 #read in shapefile 
-censusblocks <- st_read("censusblocks/censusblocks_fire_Clip.shp")
+censusblocks <- st_read(selected_shp) # st_read("censusblocks/censusblocks_fire_Clip.shp")
 
 ### MAKE INTERACTIVE MAP
 labels <-sprintf(
@@ -46,7 +55,7 @@ labels <-sprintf(
   lapply(htmltools::HTML)
 
 #color palette 
-bin = c(0, 6, 14, 31, 72, 145)
+bin = selected_bin # c(0, 6, 14, 31, 72, 145)
 pal <- colorBin(palette = "OrRd", bins = bin, domain = censusblocks$COUNT)
 
 blocks_interactive <- censusblocks %>%
