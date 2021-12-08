@@ -71,6 +71,8 @@ bins <- list(
 
 names(bins) <- c('census blocks', 'census tracts', '500 sq ft grids', 'neighborhoods', 'wards', 'zipcodes')
 
+# TODO: don't hardcode this
+selected_map <- 'census blocks'
 
 # TODO: don't hardcode this
 # read in selected shapefile 
