@@ -74,6 +74,7 @@ names(bins) <- c('census blocks', 'census tracts', '500 sq ft grids', 'neighborh
 # TODO: don't hardcode this
 selected_map <- 'census blocks'
 
+# BLOCKS
 # TODO: don't hardcode this
 # read in selected shapefile 
 censusblocks <- st_read(shpfiles$`census blocks`) 
@@ -116,23 +117,128 @@ blocks_interactive <- censusblocks %>%
                                                   color = "white", 
                                                   opacity = 1, 
                                                   bringToFront = TRUE)) %>%
-  addDrawToolbar(
-    targetGroup = "draw",
-    polylineOptions = FALSE,
-    polygonOptions = FALSE,
-    circleOptions = FALSE,
-    rectangleOptions = FALSE,
-    circleMarkerOptions = FALSE,
-
-    markerOptions = drawMarkerOptions(makeAwesomeIcon(icon = "fire", library="glyphicon", markerColor = "red")), #markerIcon = fireIcon),
-    editOptions = editToolbarOptions(
-      selectedPathOptions = selectedPathOptions()
-    )
-  ) %>% 
+  # addDrawToolbar(
+  #   targetGroup = "draw",
+  #   polylineOptions = FALSE,
+  #   polygonOptions = FALSE,
+  #   circleOptions = FALSE,
+  #   rectangleOptions = FALSE,
+  #   circleMarkerOptions = FALSE,
+  # 
+  #   markerOptions = drawMarkerOptions(makeAwesomeIcon(icon = "fire", library="glyphicon", markerColor = "red")), #markerIcon = fireIcon),
+  #   editOptions = editToolbarOptions(
+  #     selectedPathOptions = selectedPathOptions()
+  #   )
+  # ) %>% 
   addLegend("bottomright", 
             pal = pal, 
             values = ~ COUNT, 
-            title = "fire incidents", 
+            title = "Fire Incidents </br> by Census Block", 
+            opacity = 0.7)
+
+# TRACTS
+censustracts <- st_read(shpfiles$`census tracts`) 
+
+# make interactive map 
+labels <-sprintf(
+  "<strong>%s</strong><br/>%s fire incidents in September 2021",
+  censustracts$NAME, censustracts$COUNT) %>%
+  lapply(htmltools::HTML)
+
+# define color palette 
+bin = bins$`census tracts`
+pal <- colorBin(palette = "OrRd", bins = bin, domain = censustracts$COUNT)
+
+tracts_interactive <- censustracts %>%
+  st_transform(crs = st_crs("+init=epsg:4326")) %>%
+  leaflet() %>%
+  addProviderTiles(provider = "CartoDB.Positron") %>%
+  addPolygons(label = labels, 
+              stroke = FALSE, 
+              smoothFactor = .5, 
+              opacity = 1, 
+              fillOpacity = 0.7, 
+              fillColor = ~ pal(COUNT), 
+              highlightOptions = highlightOptions(weight = 5,
+                                                  fillOpacity = 1, 
+                                                  color = "white", 
+                                                  opacity = 1, 
+                                                  bringToFront = TRUE)) %>%
+ 
+addLegend("bottomright", 
+          pal = pal, 
+          values = ~ COUNT, 
+          title = "Fire Incidents </br> by Census Tract", 
+          opacity = 0.7)
+
+# GRID
+grid <- st_read(shpfiles$`500 sq ft grids`)
+# 
+# make interactive map
+labels <-sprintf(
+   "<strong>%s</strong><br/>%s fire incidents in September 2021",
+   grid$NAME, grid$COUNT) %>%
+   lapply(htmltools::HTML)
+ 
+# define color palette
+bin = bins$`500 sq ft grids`
+pal <- colorBin(palette = "OrRd", bins = bin, domain = grid$COUNT)
+
+grid_interactive <- grid %>%
+   st_transform(crs = st_crs("+init=epsg:4326")) %>%
+   leaflet() %>%
+   addProviderTiles(provider = "CartoDB.Positron") %>%
+   addPolygons(label = labels, 
+               stroke = FALSE, 
+               smoothFactor = .5, 
+               opacity = 1, 
+               fillOpacity = 0.7, 
+               fillColor = ~ pal(COUNT), 
+               highlightOptions = highlightOptions(weight = 5,
+                                                   fillOpacity = 1, 
+                                                   color = "white", 
+                                                   opacity = 1, 
+                                                   bringToFront = TRUE)) %>%
+   
+ addLegend("bottomright", 
+             pal = pal, 
+             values = ~ COUNT, 
+             title = "Fire Incidents by </br> 500 sq ft grid", 
+             opacity = 0.7)
+
+# NEIGHBORHOOD
+neighborhoods <- st_read(shpfiles$`neighborhoods`)
+# 
+# make interactive map
+labels <-sprintf(
+  "<strong>%s</strong><br/>%s fire incidents in September 2021",
+  neighborhoods$NAME, neighborhoods$COUNT) %>%
+  lapply(htmltools::HTML)
+
+# define color palette
+bin = bins$`neighborhoods`
+pal <- colorBin(palette = "OrRd", bins = bin, domain = neighborhoods$COUNT)
+
+neighborhoods_interactive <- neighborhoods %>%
+  st_transform(crs = st_crs("+init=epsg:4326")) %>%
+  leaflet() %>%
+  addProviderTiles(provider = "CartoDB.Positron") %>%
+  addPolygons(label = labels, 
+              stroke = FALSE, 
+              smoothFactor = .5, 
+              opacity = 1, 
+              fillOpacity = 0.7, 
+              fillColor = ~ pal(COUNT), 
+              highlightOptions = highlightOptions(weight = 5,
+                                                  fillOpacity = 1, 
+                                                  color = "white", 
+                                                  opacity = 1, 
+                                                  bringToFront = TRUE)) %>%
+  
+  addLegend("bottomright", 
+            pal = pal, 
+            values = ~ COUNT, 
+            title = "Fire Incidents </br> by Neighborhood", 
             opacity = 0.7)
 
 # define UI for application 
@@ -141,19 +247,29 @@ ui <- fluidPage(
   sidebarPanel( # Sidebar with game intro 
     position = "right",
     img(src="ducky.png",width="45%"),
-    h5("You’re our new mapping specialist, right? I’m so glad you’re here! 
-        I’m Ducky, the chief of the Boston Fire Department. I need your help to 
-        see how many fire-related incidents we had in each area last year and then we can use 
-        that information to decide how to spend our budget to better serve the Boston area next year!"),
-    h2("Game Rules"), 
-    h5(paste0("I was given this map of ", selected_map, " to work with...what do you think? 
-       Place firehouses around Boston to
-       cover the most calls by dragging and dropping markers on the map.")),
+    h5("Thank you for picking the locations of those fire stations! I went back to my office and found
+    a few more maps that display the same fire related incident data but with different boundaries. 
+    It looks like when we place your fire stations on these other maps they cover a different amount 
+    of incidents! Huh, I wonder why that is..."),
     br(),
-    h5("Pick one of the maps, and let's see how many fire-related calls we can cover!"),
+    # h5("Pick one of the maps, and let's see how many fire-related calls we can cover!"),
     actionButton("results", "Click to see how you did!"), 
     ),
-  mainPanel(leafletOutput("blocks", width = "100%", height = 800))
+  # mainPanel(leafletOutput("blocks", width = "100%", height = 800))
+  fixedRow(
+        column(width = 4,
+               leafletOutput('blocks')
+        ),
+        column(width = 4,
+               leafletOutput('tracts')
+        ),
+        column(width = 4,
+               leafletOutput('grid')
+        ), 
+        column(width = 4,
+               leafletOutput('neighborhoods')
+        )
+  )
   # mainPanel(
   #   tabsetPanel(id='my_tabsetPanel',
   #               tabPanel('Census Blocks',
@@ -195,6 +311,17 @@ server <- function(input, output) {
   # TODO: not hardcode this
   output$blocks <- renderLeaflet(blocks_interactive %>%
                                    addMarkers(data = maps$`census blocks`))
+  output$tracts <- renderLeaflet(tracts_interactive %>%
+                                   addMarkers(data = maps$`census blocks`))
+  output$grid <- renderLeaflet(grid_interactive %>%
+                                   addMarkers(data = maps$`census blocks`))
+  output$neighborhoods <- renderLeaflet(neighborhoods_interactive %>%
+                                   addMarkers(data = maps$`census blocks`))
+  # output$wards <- renderLeaflet(wards_interactive %>%
+  #                                  addMarkers(data = maps$`census blocks`))
+  # output$zipcodes <- renderLeaflet(zipcodes_interactive %>%
+  #                                  addMarkers(data = maps$`census blocks`))
+  
   
   ################################# TAELORS CODE #################################
 #   

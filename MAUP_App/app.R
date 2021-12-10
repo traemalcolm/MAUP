@@ -17,6 +17,7 @@ library(leaflet.extras)
 library(shiny)
 library(googlesheets4)
 library(uuid) #generate uuid  
+library(shinyalert)
 
 #################### setup #################### 
 
@@ -24,9 +25,38 @@ library(uuid) #generate uuid
 # TODO: load API creds automatically
 gsOut <- gs4_get('https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit?usp=sharing')
 
+#read data from google sheet
+firehouse_results <- read_sheet("https://docs.google.com/spreadsheets/d/11DX7BY-xk_CvkJ7HG3MlOpQYkGCf1B3lBIQzxzJ1jUM/edit#gid=0")
+
 # generate UUID for current session
 uid <- UUIDgenerate()
 print(uid)
+
+#################### calculate results #################### 
+
+# filter results to create a tbl with most recent markers
+results_grouped <- firehouse_results %>%
+  group_by(uuid, leaflet_id) %>%
+  arrange(desc(timestamp)) %>%
+  slice(1:1) %>% # get most recent marker position
+  filter(!is_deleted) %>% # filter out deleted markers
+  ungroup()
+
+# save the types of map that were created
+result_types <- results_grouped %>% 
+  select(map_type) %>% 
+  # mutate(map_type = tools::toTitleCase(map_type)) %>%
+  unique() %>% 
+  pull()
+
+# for each type, save a map to a list
+maps <- vector(mode="list", length = length(result_types))
+names(maps) <- result_types
+for (result_type in result_types) {
+  maps[[result_type]] <- results_grouped %>% filter(map_type == result_type) %>% select(long, lat)
+}
+
+print(maps)
 
 #################### select a random map to display #################### 
 
@@ -34,21 +64,21 @@ print(uid)
 maptypes <- c('census blocks', 'census tracts', '500 sq ft grids', 'neighborhoods', 'wards', 'zipcodes')
 
 shpfiles <- list(
-  'censusblocks/censusblocks_fire_Clip.shp' # census blocks
-  # 'censustracts/censustracts_fire_Clip.shp', # census tracts
-  # 'grid_fire/grid_fire.shp', # grid
-  # 'neighborhoods/neighborhoods_fire_Clip.shp', # neighborhoods
-  # 'wards/wards_fire_Clip.shp', # wards
-  # 'zipcodes/zipcodes_fire_Clip.shp' # zipcodes
+  'censusblocks/censusblocks_fire_Clip.shp', # census blocks
+   'censustracts/censustracts_fire_Clip.shp', # census tracts
+  'grid_fire/grid_fire.shp', # grid
+  'neighborhoods/neighborhoods_fire_Clip.shp', # neighborhoods
+  'wards/wards_fire_Clip.shp', # wards
+   'zipcodes/zipcodes_fire_Clip.shp' # zipcodes
 )
 
 bins <- list(
-  c(0, 6, 14, 31, 72, 145) # census blocks
-  # c(0, 12, 23, 39, 72, 149), # census tracts
-  # c(0, 2, 4, 8, 14, 23), # grid
-  # c(0, 48, 148, 264, 460, 739), # neighborhoods
-  # c(0, 124, 176, 231, 348, 534), # wards
-  # c(0, 21, 95, 156, 242, 402) # zipcodes
+  c(0, 6, 14, 31, 72, 145), # census blocks
+  c(0, 12, 23, 39, 72, 149), # census tracts
+  c(0, 2, 4, 8, 14, 23), # grid
+   c(0, 48, 148, 264, 460, 739), # neighborhoods
+   c(0, 124, 176, 231, 348, 534), # wards
+   c(0, 21, 95, 156, 242, 402) # zipcodes
 )
 
 # select random map
@@ -106,35 +136,96 @@ blocks_interactive <- censusblocks %>%
   addLegend("bottomright", 
             pal = pal, 
             values = ~ COUNT, 
-            title = "fire incidents", 
+            title = "Fire Incidents", 
             opacity = 0.7)
 
+
+
 # define UI for application 
-ui <- fluidPage(
-  titlePanel("Assisting Boston Fire Chief Ducky"), 
-  sidebarPanel( # Sidebar with game intro 
-    position = "right",
-    img(src="ducky.png",width="45%"),
-    h5("You’re our new mapping specialist, right? I’m so glad you’re here! 
-        I’m Ducky, the chief of the Boston Fire Department. I need your help to 
-        see how many fire-related incidents we had in each area last year and then we can use 
-        that information to decide how to spend our budget to better serve the Boston area next year!"),
-    h2("Game Rules"), 
-    h5(paste0("I was given this map of ", selected_map, " to work with...what do you think? 
-       Place firehouses around Boston to
-       cover the most calls by dragging and dropping markers on the map.")),
-    br(),
-    h5("Pick one of the maps, and let's see how many fire-related calls we can cover!"),
-    actionButton("results", "Click to see how you did!"), 
-    ),
-  mainPanel(leafletOutput("blocks", width = "100%", height = 800))
+ui <- fillPage(
+  tags$style(type = "text/css", "html, body {width:100%; height:100%}"),
+  useShinyalert(),
+  absolutePanel(class = "panel panel-default", fixed = TRUE,
+                 draggable = FALSE, top = 60, right = 20, bottom = "auto",
+                 width = 330, height = 590,
+    style = "z-index: 5",
+    fluidRow(
+      column(
+        width = 12, 
+        offset = 0, 
+       div(style =  "padding: 10px 10px ", 
+              img(src="ducky.png",width="45%"),
+        h5("You're our new mapping specialist, right? I'm so glad you're here!
+        I'm Ducky, the chief of the Boston Fire Department. I need your help
+        to decide how to spend our budget to better serve the Boston area next year!"),
+        h2("Game Rules"),
+        h5(paste0("I was given this map of ", selected_map, " to work with. It shows how many fire-related
+    incidents we had in each", selected_map, "last year. We have enough money in our budget this year to
+    to open 3 new fire stations. Your job is to use the data this map provides to pick the location of each
+    fire station. Once you're finished choosing the location of each fire station take a screenshot of your map
+    to use for reference and then click the 'Show Results' button below to see how the location of your fire stations compares
+    to others who have played the game."), 
+           br(),
+    
+           h5("I can't wait to see how many incidents the new fire stations cover!")),
+        br(),
+        actionButton("results", "Show Results!"),
+      ))
+    )
+   
+  ),
+  
+  leafletOutput("blocks", width = "100%", height = "100%")
+  
+  
+    # h5("Pick one of the maps, and let's see how many fire-related calls we can cover!"),
+  # textOutput("warning"), 
+  
+  
+
+              
   )
 
+  
+# 
 # Define server logic required to draw a map
 server <- function(input, output) {
+  
+  # marker counter 
+  rv <- reactiveValues(n = 0)
+  reactive_maps <- reactiveValues()
 
   # render map
+  
   output$blocks <- renderLeaflet(blocks_interactive)
+  
+  # render results
+  observeEvent(input$results, {
+    leafletProxy('blocks') %>%
+      clearShapes()%>%
+      addHeatmap(group = "heat", data = if (selected_map == 'census blocks') {
+          maps$'census blocks'
+        } else if (selected_map == 'census tracts') {
+          maps$'census tracts'
+        } else if (selected_map == '500 sq ft grids') {
+          maps$'500 sq ft grids'
+        } else if (selected_map == 'neighborhoods') {
+          maps$'neighborhoods'
+        } else if (selected_map == 'wards') {
+          maps$'wards'
+        } else {
+          maps$'zipcodes'
+        }, max=1, blur=50)
+    
+  })
+  
+  # if (selected_map == 'census blocks') {
+  #   maps$'census blocks'
+  # } else if (selected_map == 'census tracts') {
+  #   maps$'census tracts'
+  # } else {
+  #   maps$'zipcodes'
+  # }
 
   # observe new marker events
   observeEvent(input$blocks_draw_new_feature,{
@@ -154,6 +245,14 @@ server <- function(input, output) {
     names(newRow) <- c('uuid', 'leaflet_id', 'long', 'lat', 'timestamp', 'is_deleted', 'map_type')
     sheet_append(gsOut, data = newRow) # push to sheet
 
+    # marker counter 
+    rv$n <- isolate(rv$n) + 1
+    print(rv$n)
+    if(rv$n > 3){ 
+      shinyalert("Oops!", "You've run out of fire stations.", type = "error")
+      }
+    
+    
     # log
     print('new marker')
     print(newRow)
@@ -209,7 +308,10 @@ server <- function(input, output) {
     print('deleted marker')
     print(newRow)
     print('====================')
+    
+    rv$n <- isolate(rv$n) - 1
   }
+  
 )
 }
 
