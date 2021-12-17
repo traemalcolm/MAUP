@@ -65,7 +65,7 @@ maptypes <- c('census blocks', 'census tracts', '500 sq ft grids', 'neighborhood
 
 shpfiles <- list(
   'censusblocks/censusblocks_fire_Clip.shp', # census blocks
-   'censustracts/censustracts_fire_Clip.shp', # census tracts
+  'censustracts/censustracts_fire_Clip.shp', # census tracts
   'grid_fire/grid_fire.shp', # grid
   'neighborhoods/neighborhoods_fire_Clip.shp', # neighborhoods
   'wards/wards_fire_Clip.shp', # wards
@@ -82,7 +82,7 @@ bins <- list(
 )
 
 # select random map
-selected <- sample(1:length(shpfiles), 1)
+selected <- sample(length(shpfiles), 1)
 selected_map <- maptypes[selected]
 selected_shp <- shpfiles[selected]
 selected_bin <- bins[selected][[1]]
@@ -147,7 +147,7 @@ ui <- fillPage(
   useShinyalert(),
   absolutePanel(class = "panel panel-default", fixed = TRUE,
                  draggable = TRUE, top = 60, right = 20, bottom = "auto",
-                 width = 330, height = 590,
+                 width = 330, height = 600,
     style = "z-index: 5",
     fluidRow(
       column(
@@ -219,13 +219,6 @@ server <- function(input, output) {
     
   })
   
-  # if (selected_map == 'census blocks') {
-  #   maps$'census blocks'
-  # } else if (selected_map == 'census tracts') {
-  #   maps$'census tracts'
-  # } else {
-  #   maps$'zipcodes'
-  # }
 
   # observe new marker events
   observeEvent(input$blocks_draw_new_feature,{
@@ -249,7 +242,10 @@ server <- function(input, output) {
     rv$n <- isolate(rv$n) + 1
     print(rv$n)
     if(rv$n >= 3){ 
-      shinyalert("Oops!", "You've run out of fire stations.", type = "error")
+      shinyalert("Great job!", "You've placed all three fire stations. Here are your next steps:
+      
+                  1. Screenshot this page
+                  2. Click the 'Show Results' button", type = "success")
       }
     
     
